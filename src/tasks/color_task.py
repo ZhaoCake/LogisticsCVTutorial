@@ -24,7 +24,7 @@ def run(camera, serial_comm):
         serial_comm: SerialComm 实例，用于收发数据
 
     返回:
-        True - 表示此轮循环正常执行（状态机继续在当前状态循环）
+        检测结果字符串（发送给下位机的数据）
     """
     # 获取最新帧（供后续实际颜色检测使用）
     frame = camera.get_frame()
@@ -37,4 +37,4 @@ def run(camera, serial_comm):
     # 控制发送频率
     time.sleep(0.05)
 
-    return True
+    return _COLOR_DATA

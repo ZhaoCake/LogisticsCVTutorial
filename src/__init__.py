@@ -20,11 +20,12 @@ from src.protocol import (
 
 from src.serial_comm import SerialComm
 from src.camera import Camera
+from src.display import Display
 from src.state_machine import StateMachine, State
 
 __all__ = [
     "FRAME_HEADER", "FRAME_TAIL", "ACK",
     "CMD_IDLE", "CMD_QR", "CMD_COLOR", "CMD_CIRCLE", "CMD_NAMES",
     "parse_frame", "build_data_frame",
-    "SerialComm", "Camera", "StateMachine", "State",
+    "SerialComm", "Camera", "Display", "StateMachine", "State",
 ]

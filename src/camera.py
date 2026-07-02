@@ -29,6 +29,7 @@ class Camera:
             height: 采集高度，默认 480
         """
         self._cap = cv2.VideoCapture(device)
+        self._last_frame = None
 
         # 设置分辨率
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -38,7 +39,7 @@ class Camera:
             raise RuntimeError(f"无法打开摄像头设备 {device}")
 
     def get_frame(self):
-        """获取最新一帧
+        """获取最新一帧，同时缓存到 last_frame
 
         返回:
             numpy.ndarray 或 None（读取失败时）
@@ -46,7 +47,13 @@ class Camera:
         ret, frame = self._cap.read()
         if not ret:
             return None
+        self._last_frame = frame
         return frame
+
+    @property
+    def last_frame(self):
+        """最近一次成功读取的帧，用于显示等外部访问"""
+        return self._last_frame
 
     def release(self):
         """释放摄像头资源"""

@@ -28,6 +28,7 @@ from src.protocol import (
     parse_frame,
     build_data_frame,
 )
+from src.display import Display
 from src.tasks import qr_task, color_task, circle_task
 
 # ── 日志配置 ──────────────────────────────────────────────
@@ -50,15 +51,17 @@ class StateMachine:
         sm.run()   # 进入主循环，永不返回
     """
 
-    def __init__(self, camera, serial_comm):
+    def __init__(self, camera, serial_comm, display: Display | None = None):
         """初始化状态机
 
         参数:
             camera:      Camera 实例
             serial_comm: SerialComm 实例
+            display:     Display 实例，用于实时可视化（可选）
         """
         self.camera = camera
         self.serial = serial_comm
+        self.display = display or Display(enabled=False)
         self.state = State.IDLE
 
         logger.info(f"状态机初始化完成，初始状态: {self.state.name}")
@@ -87,6 +90,8 @@ class StateMachine:
             logger.info("收到中断信号，状态机关闭")
         except Exception as e:
             logger.error(f"状态机异常退出: {e}", exc_info=True)
+        finally:
+            self.display.close()
 
     def _check_and_handle_command(self):
         """非阻塞检查串口是否有新命令
@@ -126,19 +131,28 @@ class StateMachine:
     def _run_idle(self):
         """IDLE 状态主循环
 
-        阻塞等待下位机命令:
-          1. 持续读取相机帧（维持视频流）
-          2. 阻塞等待串口帧
-          3. 收到命令后回复 CC 并切换状态
+        非阻塞轮询等待下位机命令:
+           1. 持续读取并显示相机帧（实时视频流）
+           2. 非阻塞检查串口命令
+           3. 收到命令后回复 CC 并切换状态
         """
         logger.info("进入 IDLE 状态，等待命令...")
 
         while True:
             # 持续读取帧，使相机缓冲区保持最新
-            _ = self.camera.get_frame()
+            self.camera.get_frame()
 
-            # 阻塞等待命令
-            result = self.serial.read_frame(blocking=True)
+            # 实时显示当前画面
+            if not self.display.show(self.camera.last_frame, state="IDLE", result=""):
+                raise KeyboardInterrupt()
+
+            # 非阻塞检查命令
+            result = self.serial.read_frame(blocking=False)
+            if result is None:
+                import time
+                time.sleep(0.01)
+                continue
+
             cmd, payload = result
             cmd_name = CMD_NAMES.get(cmd, f"UNKNOWN(0x{cmd:02X})")
             logger.info(f"收到命令: {cmd_name} (0x{cmd:02X}), 负载: {payload}")
@@ -147,7 +161,6 @@ class StateMachine:
             self.serial.send_ack()
 
             if cmd == CMD_IDLE:
-                # 收到 C0 也在 IDLE，继续等待
                 logger.debug("收到 C0，继续 IDLE")
                 continue
             elif cmd == CMD_QR:
@@ -174,9 +187,19 @@ class StateMachine:
         """
         logger.info(f"进入 {task_name} 状态")
 
+        # 上一次的检测结果，用于显示（先显示，检测异步更新结果）
+        last_result = ""
+
         while True:
-            # 执行任务逻辑
-            task_module.run(self.camera, self.serial)
+            # 先获取最新帧并显示（带上一次结果，不等待本次检测）
+            self.camera.get_frame()
+            if not self.display.show(self.camera.last_frame, state=task_name, result=last_result):
+                raise KeyboardInterrupt()
+
+            # 再执行检测逻辑（内部会 sleep），更新结果
+            task_result = task_module.run(self.camera, self.serial)
+            if task_result:
+                last_result = task_result
 
             # 非阻塞检查是否有新命令
             result = self._check_and_handle_command()

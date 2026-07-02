@@ -55,15 +55,17 @@ def run(camera, serial_comm):
         serial_comm: SerialComm 实例，用于收发数据
 
     返回:
-        True - 表示此轮循环正常执行（状态机继续在当前状态循环）
+        检测结果字符串（发送给下位机的数据），无结果返回 ""
     """
     frame = camera.get_frame()
     if frame is None:
-        return True
+        return ""
 
     result = _decode_qr(frame)
     if result is not None:
         serial_comm.send_data_frame(result)
+        time.sleep(0.05)
+        return result
 
     time.sleep(0.05)
-    return True
+    return ""

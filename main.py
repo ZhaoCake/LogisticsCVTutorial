@@ -22,6 +22,7 @@ import logging
 
 from src.camera import Camera
 from src.serial_comm import SerialComm
+from src.display import Display
 from src.state_machine import StateMachine
 
 
@@ -34,10 +35,15 @@ def _setup_logging():
     )
 
 
+# ── 全局开关 ─────────────────────────────────────────────
+# 设为 True 启用实时可视化窗口，False 关闭（无头模式运行）
+DISPLAY = True
+
+
 def main():
     """主函数
 
-    解析命令行参数，初始化相机、串口和状态机，进入主循环。
+    解析命令行参数，初始化相机、串口、显示和状态机，进入主循环。
     """
     _setup_logging()
     logger = logging.getLogger("Main")
@@ -47,6 +53,7 @@ def main():
     baud = int(sys.argv[2]) if len(sys.argv) > 2 else 115200
 
     logger.info(f"串口: {port}, 波特率: {baud}")
+    logger.info(f"可视化窗口: {'启用' if DISPLAY else '关闭'}")
 
     # 初始化相机（默认摄像头 0，640x480）
     logger.info("正在初始化摄像头...")
@@ -58,9 +65,13 @@ def main():
     serial = SerialComm(port, baud)
     logger.info("串口打开成功")
 
+    # 初始化显示窗口
+    logger.info("初始化显示窗口...")
+    display = Display(enabled=DISPLAY)
+
     # 启动状态机主循环（阻塞，永不返回）
     logger.info("启动状态机主循环")
-    sm = StateMachine(camera, serial)
+    sm = StateMachine(camera, serial, display)
     sm.run()
 
 
