@@ -8,4 +8,5 @@ dependencies = [
     "opencv-python",
     "pyserial",
     "pyzbar",
+    "qrcode[pil]",
 ]

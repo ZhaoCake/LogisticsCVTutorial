@@ -1,19 +1,50 @@
 """
 二维码扫描任务
 
-当前阶段：数据写死为 "123456"。
-后续接入 pyzbar 实现实际的二维码解码。
+使用 OpenCV 内置 QRCodeDetector 实时解码摄像头画面中的二维码。
+检测结果格式: "XXX+YYY"，其中 X/Y 是 {1,2,3} 的全排列。
 
 在任务状态下持续:
-  1. 获取当前帧（供后续解码使用）
-  2. 向下位机发送 AA 123456 55
+  1. 获取当前帧
+  2. 用 QRCodeDetector 解码二维码
+  3. 匹配 "123+321" 型格式
+  4. 向下位机发送 AA 检测结果 55
 """
 
+import re
 import time
 
+import cv2
 
-# ── 占位数据，后续替换为真实解码逻辑 ──────────────────────
-_QR_DATA = "123456"
+# 匹配 "123+321" 型格式: 两组三位数，每组是 1,2,3 的全排列
+_QR_PATTERN = re.compile(r"^[123]{3}\+[123]{3}$")
+
+
+def _decode_qr(frame):
+    """解码帧中的二维码，返回第一个匹配 "123+321" 型的数据
+
+    使用 OpenCV 的 QRCodeDetector，不需要额外系统库。
+
+    参数:
+        frame: OpenCV BGR 图像 (numpy.ndarray)
+
+    返回:
+        str 或 None - 匹配的二维码数据
+    """
+    try:
+        detector = cv2.QRCodeDetector()
+        data, points, _ = detector.detectAndDecode(frame)
+    except Exception:
+        return None
+
+    if not data:
+        return None
+
+    # QRCodeDetector 可能返回空字符串
+    if _QR_PATTERN.match(data):
+        return data
+
+    return None
 
 
 def run(camera, serial_comm):
@@ -26,15 +57,13 @@ def run(camera, serial_comm):
     返回:
         True - 表示此轮循环正常执行（状态机继续在当前状态循环）
     """
-    # 获取最新帧（供后续实际解码使用）
     frame = camera.get_frame()
-    if frame is not None:
-        _ = frame  # 占位，后续替换为实际二维码解码逻辑
+    if frame is None:
+        return True
 
-    # 向下位机发送检测结果
-    serial_comm.send_data_frame(_QR_DATA)
+    result = _decode_qr(frame)
+    if result is not None:
+        serial_comm.send_data_frame(result)
 
-    # 控制发送频率，避免串口拥堵
     time.sleep(0.05)
-
     return True

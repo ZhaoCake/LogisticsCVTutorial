@@ -50,7 +50,7 @@ def main():
 
     # 初始化相机（默认摄像头 0，640x480）
     logger.info("正在初始化摄像头...")
-    camera = Camera(device="./resources/color_test.avi", width=640, height=480)
+    camera = Camera(device="./resources/qr_loop.mp4", width=640, height=480)
     logger.info("摄像头初始化成功")
 
     # 初始化串口
