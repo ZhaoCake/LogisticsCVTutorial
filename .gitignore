@@ -3,3 +3,7 @@
 *.avi
 *.mp4
 **/qr_frames/
+*_datasets*
+*.tar.gz
+outputs/
+train/datasets/
