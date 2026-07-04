@@ -9,4 +9,18 @@ dependencies = [
     "pyserial",
     "pyzbar",
     "qrcode[pil]",
+    "torch>=2.0",
+    "torchvision>=0.15",
 ]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
