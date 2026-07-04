@@ -7,3 +7,4 @@
 *.tar.gz
 outputs/
 train/datasets/
+*.pt

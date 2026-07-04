@@ -29,18 +29,21 @@ train/
 
 ## 模型架构
 
-极轻量全卷积检测网络 (~1.9K 参数)，仅 3 层下采样。
+轻量全卷积检测网络 (~25K 参数)，4 层下采样。
 
 ```
 输入: 224×224×1 (灰度图，resize 自 480×640)
 
-Block1: Conv(1→4,  3×3) + BN + ReLU + MaxPool(2)  → 112×112×4
-Block2: Conv(4→8,  3×3) + BN + ReLU + MaxPool(2)  → 56×56×8
-Block3: Conv(8→16, 3×3) + BN + ReLU + MaxPool(2)  → 28×28×16
-Head:   Conv(16→5+C, 1×1)                          → 28×28×(5+C)
+Block1: Conv(1→8,  3×3) + BN + ReLU + MaxPool(2)  → 112×112×8
+Block2: Conv(8→16, 3×3) + BN + ReLU + MaxPool(2)  → 56×56×16
+Block3: Conv(16→32, 3×3) + BN + ReLU + MaxPool(2)  → 28×28×32
+Block4: Conv(32→64, 3×3) + BN + ReLU + MaxPool(2)  → 14×14×64
+Head:   Conv(64→5+C, 1×1)                          → 14×14×(5+C)
 
-输出: 28×28 网格，每个格子预测 (tx, ty, tw, th, obj_conf) + C 个类别概率
+输出: 14×14 网格，每个格子预测 (tx, ty, tw, th, obj_conf) + C 个类别概率
 ```
+
+> 结果加了第四个block之后60多个epoch时map50就达到0.96了。
 
 仅包含 4 种标准算子 (Conv2D, BatchNorm, ReLU, MaxPool2d)，易于移植到 ONNX / TensorRT / OpenVINO / 移动端推理框架。
 

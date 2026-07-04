@@ -15,19 +15,27 @@ class ConvBlock(nn.Module):
 
 
 class DetectionModel(nn.Module):
-    num_pools = 3
+    num_pools = 4
 
     def __init__(self, num_classes: int):
         super().__init__()
         self.num_classes = num_classes
         out_channels = 5 + num_classes
 
-        self.block1 = ConvBlock(1, 4, downsample=True)
-        self.block2 = ConvBlock(4, 8, downsample=True)
-        self.block3 = ConvBlock(8, 16, downsample=True)
-        self.head = nn.Conv2d(16, out_channels, 1)
+        self.block1 = ConvBlock(1, 8, downsample=True)
+        self.block2 = ConvBlock(8, 16, downsample=True)
+        self.block3 = ConvBlock(16, 32, downsample=True)
+        self.block4 = ConvBlock(32, 64, downsample=True)
+        self.head = nn.Conv2d(64, out_channels, 1)
 
         self._init_weights()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        x = self.block4(x)
+        return self.head(x)
 
     def _init_weights(self):
         for m in self.modules():
@@ -36,9 +44,3 @@ class DetectionModel(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.block1(x)
-        x = self.block2(x)
-        x = self.block3(x)
-        return self.head(x)
